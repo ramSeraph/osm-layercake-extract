@@ -117,9 +117,32 @@ html, body {
 }
 
 .panel-header .data-timestamp {
-  font-size: 11px;
+  font-size: 13px;
+  color: #1e1e2e;
+  font-weight: 700;
+  margin-top: 10px;
+  padding: 7px 12px;
+  background: #f9e2af;
+  border-radius: 4px;
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+
+/* ── GitHub icon link ──────────────────────────────── */
+
+.github-link {
   color: #a6adc8;
-  margin-top: 4px;
+  vertical-align: middle;
+  margin-left: 6px;
+  transition: color 0.2s;
+}
+
+.github-link:hover {
+  color: #cdd6f4;
+}
+
+.github-link svg {
+  vertical-align: -4px;
 }
 
 /* ── Panel body ────────────────────────────────────── */

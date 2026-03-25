@@ -1,5 +1,7 @@
 # OSM Layercake Extract
 
+**🌐 [Live Site](https://ramseraph.github.io/osm-layercake-extract/)**
+
 A proof-of-concept that demonstrates extracting large geospatial datasets from remote GeoParquet files entirely in the browser, using OPFS (Origin Private File System) for temporary storage and spill-over.
 
 ## How It Works
@@ -8,10 +10,13 @@ The app queries remote [OSMUS Layercake](https://openstreetmap.us/our-work/layer
 
 ### Available Datasets
 
-| Dataset   | URL |
-|-----------|-----|
-| Buildings | `https://data.openstreetmap.us/layercake/buildings.parquet` |
-| Highways  | `https://data.openstreetmap.us/layercake/highways.parquet`  |
+| Dataset      | URL |
+|--------------|-----|
+| Buildings    | `https://data.openstreetmap.us/layercake/buildings.parquet`   |
+| Highways     | `https://data.openstreetmap.us/layercake/highways.parquet`    |
+| Boundaries   | `https://data.openstreetmap.us/layercake/boundaries.parquet`  |
+| Parks        | `https://data.openstreetmap.us/layercake/parks.parquet`       |
+| Settlements  | `https://data.openstreetmap.us/layercake/settlements.parquet` |
 
 ### Output Formats
 
@@ -21,6 +26,9 @@ The app queries remote [OSMUS Layercake](https://openstreetmap.us/our-work/layer
 - **GeoParquet v2.0** (`.parquet`)
 - **GeoPackage** (`.gpkg`) — with R-tree spatial index
 - **CSV** (`.csv`) — with WKT geometry
+- **Shapefile** (`.shp`)
+- **KML** (`.kml`)
+- **DXF** (`.dxf`)
 
 ## Key Dependencies
 

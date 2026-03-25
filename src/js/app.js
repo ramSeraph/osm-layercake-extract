@@ -3,6 +3,7 @@
 
 import {
   GeoParquetExtractor,
+  MetadataProvider,
   initDuckDB,
   formatSize,
   getStorageEstimate,
@@ -200,6 +201,7 @@ downloadBtn.addEventListener('click', async () => {
 
   const b = map.getBounds();
   const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+  console.log('Download bbox:', bbox);
 
   const memMB = parseInt(memorySlider.value);
 
@@ -227,12 +229,13 @@ downloadBtn.addEventListener('click', async () => {
       const duckdb = await duckdbPromise;
       extractor = new GeoParquetExtractor({
         duckdb,
+        metadataProvider: new MetadataProvider(),
         gpkgWorkerUrl: GPKG_WORKER_URL,
       });
     }
 
     const formatHandler = await extractor.prepare({
-      urls: [ds.url],
+      sourceUrl: ds.url,
       bbox,
       format,
       memoryLimitMB: memMB,
@@ -290,6 +293,7 @@ downloadBtn.addEventListener('click', async () => {
 
   } catch (error) {
     if (error.name !== 'AbortError') {
+      console.error('Download failed:', error);
       statusText.textContent = `Error: ${error.message}`;
       statusText.classList.add('error');
     } else {
