@@ -239,6 +239,7 @@ downloadBtn.addEventListener('click', async () => {
       bbox,
       format,
       memoryLimitMB: memMB,
+      flattenStructs: true,
       onProgress,
       onStatus,
     });
