@@ -494,20 +494,12 @@ input[type="range"]:disabled {
   margin-left: auto;
 }
 
-/* ── Warning banner ────────────────────────────────── */
+/* ── Size disclaimer ───────────────────────────────── */
 
-.warning-banner {
-  background: #45475a;
-  color: #f9e2af;
-  font-size: 11px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  margin-bottom: 14px;
-  line-height: 1.5;
-}
-
-.warning-banner strong {
-  color: #fab387;
+.size-disclaimer {
+  font-size: 10px;
+  color: #7f849c;
+  margin-top: 4px;
 }
 
 /* ── Responsive ────────────────────────────────────── */

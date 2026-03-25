@@ -86,12 +86,29 @@ const FORMAT_LABELS = {
   dxf: 'DXF',
 };
 
+// --- URL state ---
+
+const urlParams = new URLSearchParams(window.location.search);
+const initialLayer = urlParams.get('layer');
+if (initialLayer && DATASETS[initialLayer]) {
+  datasetSelect.value = initialLayer;
+}
+
+function updateLayerParam() {
+  const params = new URLSearchParams(window.location.search);
+  params.set('layer', datasetSelect.value);
+  const newUrl = `${window.location.pathname}?${params}${window.location.hash}`;
+  window.history.replaceState(null, '', newUrl);
+}
+updateLayerParam();
+
 // --- Map initialization ---
 
 registerCorrectionProtocol(maplibregl);
 
 const map = new maplibregl.Map({
   container: 'map',
+  hash: 'map',
   style: {
     version: 8,
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
@@ -181,7 +198,10 @@ function updateDatasetInfo() {
   datasetInfo.innerHTML = `<span class="ds-size">${ds.size}</span><br>${ds.description}`;
 }
 updateDatasetInfo();
-datasetSelect.addEventListener('change', updateDatasetInfo);
+datasetSelect.addEventListener('change', () => {
+  updateDatasetInfo();
+  updateLayerParam();
+});
 
 // --- Bbox display ---
 
