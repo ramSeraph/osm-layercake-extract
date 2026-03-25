@@ -86,6 +86,25 @@ const FORMAT_LABELS = {
   dxf: 'DXF',
 };
 
+// --- DOM references ---
+
+const datasetSelect = document.getElementById('dataset-select');
+const datasetInfo = document.getElementById('dataset-info');
+const bboxDisplay = document.getElementById('bbox-display');
+const formatSelect = document.getElementById('format-select');
+const memorySlider = document.getElementById('memory-slider');
+const memoryValue = document.getElementById('memory-value');
+const downloadBtn = document.getElementById('download-btn');
+const cancelBtn = document.getElementById('cancel-btn');
+const progressContainer = document.getElementById('progress-container');
+const downloadInfo = document.getElementById('download-info');
+const progressBar = document.getElementById('progress-bar');
+const statusText = document.getElementById('status-text');
+const panelToggle = document.getElementById('panel-toggle');
+const panel = document.getElementById('panel');
+const extentsCheckbox = document.getElementById('show-extents');
+const extentsStatus = document.getElementById('extents-status');
+
 // --- URL state ---
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -136,25 +155,6 @@ const map = new maplibregl.Map({
 
 map.addControl(new maplibregl.AttributionControl(), 'bottom-left');
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
-
-// --- DOM references ---
-
-const datasetSelect = document.getElementById('dataset-select');
-const datasetInfo = document.getElementById('dataset-info');
-const bboxDisplay = document.getElementById('bbox-display');
-const formatSelect = document.getElementById('format-select');
-const memorySlider = document.getElementById('memory-slider');
-const memoryValue = document.getElementById('memory-value');
-const downloadBtn = document.getElementById('download-btn');
-const cancelBtn = document.getElementById('cancel-btn');
-const progressContainer = document.getElementById('progress-container');
-const downloadInfo = document.getElementById('download-info');
-const progressBar = document.getElementById('progress-bar');
-const statusText = document.getElementById('status-text');
-const panelToggle = document.getElementById('panel-toggle');
-const panel = document.getElementById('panel');
-const extentsCheckbox = document.getElementById('show-extents');
-const extentsStatus = document.getElementById('extents-status');
 
 // --- Extractor (lazy-initialized on first download) ---
 
@@ -386,6 +386,9 @@ const EXTENT_CONFIGS = {
 };
 
 let extentData = null;
+let extentDuckdb = null;
+let extentDuckdbPromise = null;
+let extentLoading = false;
 const extentHoverHandlers = [];
 const extentHoveredFeatures = new Map();
 
@@ -514,24 +517,36 @@ function removeAllExtents() {
   }
 }
 
+function cancelExtentFetch() {
+  if (extentDuckdb) {
+    extentDuckdb.terminate();
+    extentDuckdb = null;
+  }
+  extentData = null;
+  extentDuckdbPromise = null;
+  extentLoading = false;
+  extentsCheckbox.disabled = false;
+  extentsStatus.textContent = '';
+}
+
 async function showExtents() {
   removeAllExtents();
   extentsCheckbox.disabled = true;
   extentsStatus.textContent = 'Loading…';
+  extentLoading = true;
 
   try {
     if (!map.isStyleLoaded()) {
       await new Promise(resolve => map.once('load', resolve));
     }
 
-    if (!extentData) {
-      if (!duckdbPromise) duckdbPromise = initDuckDB(DUCKDB_DIST);
-      const duckdb = await duckdbPromise;
-      extentData = new ExtentData({
-        metadataProvider: new MetadataProvider(),
-        duckdb,
-      });
-    }
+    if (!extentDuckdbPromise) extentDuckdbPromise = initDuckDB(DUCKDB_DIST);
+    const duckdb = await extentDuckdbPromise;
+    extentDuckdb = duckdb;
+    extentData = new ExtentData({
+      metadataProvider: new MetadataProvider(),
+      duckdb,
+    });
 
     const ds = DATASETS[datasetSelect.value];
     const { dataExtents, rgExtents } = await extentData.fetchExtents({
@@ -547,9 +562,11 @@ async function showExtents() {
     extentsStatus.textContent = '';
 
   } catch (error) {
+    if (error.name === 'AbortError') return;
     console.error('Failed to show extents:', error);
     extentsStatus.textContent = 'Error loading extents';
   } finally {
+    extentLoading = false;
     extentsCheckbox.disabled = false;
   }
 }
@@ -564,6 +581,7 @@ extentsCheckbox.addEventListener('change', async () => {
 });
 
 datasetSelect.addEventListener('change', () => {
+  if (extentLoading) cancelExtentFetch();
   removeAllExtents();
   extentsCheckbox.checked = false;
   extentsStatus.textContent = '';
