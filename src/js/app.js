@@ -341,21 +341,27 @@ cancelBtn.addEventListener('click', () => {
 const EXTENT_CONFIGS = {
   data: {
     sourceId: 'data-extents',
+    labelSourceId: 'data-extents-labels-src',
     fillLayer: 'data-extents-fill',
     lineLayer: 'data-extents-line',
+    labelLayer: 'data-extents-labels',
     fillColor: 'rgba(255, 152, 0, 0.12)',
     fillHoverColor: 'rgba(255, 152, 0, 0.35)',
     lineColor: 'rgba(255, 152, 0, 0.8)',
     lineHoverColor: 'rgba(255, 200, 0, 1)',
+    textColor: '#FF9800',
   },
   rg: {
     sourceId: 'rg-extents',
+    labelSourceId: 'rg-extents-labels-src',
     fillLayer: 'rg-extents-fill',
     lineLayer: 'rg-extents-line',
+    labelLayer: 'rg-extents-labels',
     fillColor: 'rgba(0, 188, 212, 0.10)',
     fillHoverColor: 'rgba(0, 188, 212, 0.30)',
     lineColor: 'rgba(0, 188, 212, 0.7)',
     lineHoverColor: 'rgba(0, 230, 255, 1)',
+    textColor: '#00BCD4',
   },
 };
 
@@ -364,20 +370,31 @@ const extentHoverHandlers = [];
 const extentHoveredFeatures = new Map();
 
 function extentsToGeoJSON(extents) {
-  if (!extents) return { type: 'FeatureCollection', features: [] };
-  const features = [];
+  const emptyFC = { type: 'FeatureCollection', features: [] };
+  if (!extents) return { polygons: emptyFC, labelPoints: emptyFC };
+  const polyFeatures = [];
+  const labelFeatures = [];
   for (const [name, bbox] of Object.entries(extents)) {
     const [minx, miny, maxx, maxy] = bbox;
-    features.push({
+    const label = name.replace('rg_', '');
+    polyFeatures.push({
       type: 'Feature',
-      properties: { name },
+      properties: { name, label },
       geometry: {
         type: 'Polygon',
         coordinates: [[[minx, miny], [maxx, miny], [maxx, maxy], [minx, maxy], [minx, miny]]],
       },
     });
+    labelFeatures.push({
+      type: 'Feature',
+      properties: { label },
+      geometry: { type: 'Point', coordinates: [minx, maxy] },
+    });
   }
-  return { type: 'FeatureCollection', features };
+  return {
+    polygons: { type: 'FeatureCollection', features: polyFeatures },
+    labelPoints: { type: 'FeatureCollection', features: labelFeatures },
+  };
 }
 
 function flattenRgExtents(rgExtents) {
@@ -392,8 +409,8 @@ function flattenRgExtents(rgExtents) {
 }
 
 function addExtentLayer(cfg, extents) {
-  const geojson = extentsToGeoJSON(extents);
-  map.addSource(cfg.sourceId, { type: 'geojson', data: geojson, generateId: true });
+  const { polygons, labelPoints } = extentsToGeoJSON(extents);
+  map.addSource(cfg.sourceId, { type: 'geojson', data: polygons, generateId: true });
   map.addLayer({
     id: cfg.fillLayer, type: 'fill', source: cfg.sourceId,
     paint: {
@@ -409,14 +426,35 @@ function addExtentLayer(cfg, extents) {
       'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2.5, 1.5],
     },
   });
+  if (labelPoints.features.length > 1) {
+    map.addSource(cfg.labelSourceId, { type: 'geojson', data: labelPoints });
+    map.addLayer({
+      id: cfg.labelLayer, type: 'symbol', source: cfg.labelSourceId,
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-size': 11,
+        'text-anchor': 'top-left',
+        'text-offset': [0.3, 0.3],
+        'text-allow-overlap': true,
+        'text-font': ['Open Sans Semibold'],
+      },
+      paint: {
+        'text-color': cfg.textColor,
+        'text-halo-color': 'rgba(0, 0, 0, 0.7)',
+        'text-halo-width': 1,
+      },
+    });
+  }
   addExtentHoverHandlers(cfg);
 }
 
 function removeExtentLayer(cfg) {
-  for (const layer of [cfg.lineLayer, cfg.fillLayer]) {
+  for (const layer of [cfg.labelLayer, cfg.lineLayer, cfg.fillLayer]) {
     if (map.getLayer(layer)) map.removeLayer(layer);
   }
-  if (map.getSource(cfg.sourceId)) map.removeSource(cfg.sourceId);
+  for (const src of [cfg.labelSourceId, cfg.sourceId]) {
+    if (map.getSource(src)) map.removeSource(src);
+  }
 }
 
 function addExtentHoverHandlers(cfg) {
