@@ -431,7 +431,6 @@ function addExtentHoverHandlers(cfg) {
       if (!prevIds.has(id)) map.setFeatureState({ source: cfg.sourceId, id }, { hover: true });
     }
     extentHoveredFeatures.set(cfg.sourceId, nextIds);
-    map.getCanvas().style.cursor = nextIds.size ? 'pointer' : '';
   };
   const onLeave = () => {
     const prevIds = extentHoveredFeatures.get(cfg.sourceId);
@@ -439,7 +438,6 @@ function addExtentHoverHandlers(cfg) {
       for (const id of prevIds) map.setFeatureState({ source: cfg.sourceId, id }, { hover: false });
       extentHoveredFeatures.delete(cfg.sourceId);
     }
-    map.getCanvas().style.cursor = '';
   };
   map.on('mousemove', cfg.fillLayer, onMove);
   map.on('mouseleave', cfg.fillLayer, onLeave);
