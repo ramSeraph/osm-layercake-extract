@@ -169,6 +169,24 @@ html, body {
 
 /* ── Inputs ────────────────────────────────────────── */
 
+details.form-group summary {
+  font-size: 12px;
+  font-weight: 600;
+  color: #bac2de;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  list-style: none;
+}
+
+details.form-group summary::before {
+  content: '▸ ';
+}
+
+details.form-group[open] summary::before {
+  content: '▾ ';
+}
+
 select {
   width: 100%;
   background: #313244;
@@ -411,26 +429,69 @@ input[type="range"]:disabled {
   margin: 0 6px;
 }
 
-/* ── Leaflet overrides ─────────────────────────────── */
+/* ── MapLibre GL overrides ──────────────────────────── */
 
-.leaflet-control-attribution {
+.maplibregl-ctrl-attrib {
   background: rgba(30, 30, 46, 0.85) !important;
   color: #a6adc8 !important;
   font-size: 11px !important;
 }
 
-.leaflet-control-attribution a {
+.maplibregl-ctrl-attrib a {
   color: #89b4fa !important;
 }
 
-.leaflet-control-zoom a {
+.maplibregl-ctrl-group {
   background: #1e1e2e !important;
-  color: #cdd6f4 !important;
   border-color: #313244 !important;
 }
 
-.leaflet-control-zoom a:hover {
-  background: #313244 !important;
+.maplibregl-ctrl-group button {
+  background-color: #1e1e2e !important;
+  border-color: #313244 !important;
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid #313244 !important;
+}
+
+.maplibregl-ctrl-group button span {
+  filter: invert(1);
+}
+
+.maplibregl-ctrl-group button:hover {
+  background-color: #313244 !important;
+}
+
+/* ── Extents checkbox ──────────────────────────────── */
+
+.extents-checkbox-container {
+  margin-bottom: 18px;
+  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.extents-checkbox-label {
+  font-size: 12px;
+  color: #a6adc8;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.extents-checkbox {
+  accent-color: #ff9800;
+  cursor: pointer;
+}
+
+.extents-status {
+  font-size: 10px;
+  color: #7f849c;
+  margin-left: auto;
 }
 
 /* ── Warning banner ────────────────────────────────── */

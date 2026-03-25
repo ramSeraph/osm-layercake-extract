@@ -1,13 +1,16 @@
 // OSM Layercake Extract — Main application
-// Leaflet map with India boundary corrected OSM tiles + download panel
+// MapLibre GL map with India boundary corrected OSM tiles + download panel
 
 import {
   GeoParquetExtractor,
   MetadataProvider,
+  ExtentData,
   initDuckDB,
   formatSize,
   getStorageEstimate,
 } from 'geoparquet-extractor';
+
+import { registerCorrectionProtocol } from '@india-boundary-corrector/maplibre-protocol';
 
 const DUCKDB_DIST = 'https://cdn.jsdelivr.net/npm/duckdb-wasm-opfs-tempdir@1.33.0/dist';
 const METADATA_URL = 'https://data.openstreetmap.us/layercake/metadata.json';
@@ -85,21 +88,37 @@ const FORMAT_LABELS = {
 
 // --- Map initialization ---
 
-IndiaBoundaryCorrector.extendLeaflet(L);
+registerCorrectionProtocol(maplibregl);
 
-const map = L.map('map', {
-  center: [22, 79],
-  zoom: 5,
-  zoomControl: true,
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    sources: {
+      'osm-carto': {
+        type: 'raster',
+        tiles: [
+          'ibc://https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          'ibc://https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          'ibc://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      },
+    },
+    layers: [
+      { id: 'osm-carto', type: 'raster', source: 'osm-carto' },
+    ],
+  },
+  center: [79, 22],
+  zoom: 4,
   attributionControl: false,
 });
 
-L.control.attribution({ position: 'bottomleft' }).addTo(map);
-
-L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  maxZoom: 19,
-}).addTo(map);
+map.addControl(new maplibregl.AttributionControl(), 'bottom-left');
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
 
 // --- DOM references ---
 
@@ -117,6 +136,8 @@ const progressBar = document.getElementById('progress-bar');
 const statusText = document.getElementById('status-text');
 const panelToggle = document.getElementById('panel-toggle');
 const panel = document.getElementById('panel');
+const extentsCheckbox = document.getElementById('show-extents');
+const extentsStatus = document.getElementById('extents-status');
 
 // --- Extractor (lazy-initialized on first download) ---
 
@@ -180,7 +201,7 @@ map.on('moveend', updateBbox);
 panelToggle.addEventListener('click', () => {
   panel.classList.toggle('collapsed');
   panelToggle.textContent = panel.classList.contains('collapsed') ? '◀' : '▶';
-  setTimeout(() => map.invalidateSize(), 300);
+  setTimeout(() => map.resize(), 300);
 });
 
 // --- Download ---
@@ -313,4 +334,181 @@ downloadBtn.addEventListener('click', async () => {
 cancelBtn.addEventListener('click', () => {
   extractor?.cancel();
   statusText.textContent = 'Cancelling after current operation…';
+});
+
+// --- Extent visualization ---
+
+const EXTENT_CONFIGS = {
+  data: {
+    sourceId: 'data-extents',
+    fillLayer: 'data-extents-fill',
+    lineLayer: 'data-extents-line',
+    fillColor: 'rgba(255, 152, 0, 0.12)',
+    fillHoverColor: 'rgba(255, 152, 0, 0.35)',
+    lineColor: 'rgba(255, 152, 0, 0.8)',
+    lineHoverColor: 'rgba(255, 200, 0, 1)',
+  },
+  rg: {
+    sourceId: 'rg-extents',
+    fillLayer: 'rg-extents-fill',
+    lineLayer: 'rg-extents-line',
+    fillColor: 'rgba(0, 188, 212, 0.10)',
+    fillHoverColor: 'rgba(0, 188, 212, 0.30)',
+    lineColor: 'rgba(0, 188, 212, 0.7)',
+    lineHoverColor: 'rgba(0, 230, 255, 1)',
+  },
+};
+
+let extentData = null;
+const extentHoverHandlers = [];
+const extentHoveredFeatures = new Map();
+
+function extentsToGeoJSON(extents) {
+  if (!extents) return { type: 'FeatureCollection', features: [] };
+  const features = [];
+  for (const [name, bbox] of Object.entries(extents)) {
+    const [minx, miny, maxx, maxy] = bbox;
+    features.push({
+      type: 'Feature',
+      properties: { name },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[[minx, miny], [maxx, miny], [maxx, maxy], [minx, maxy], [minx, miny]]],
+      },
+    });
+  }
+  return { type: 'FeatureCollection', features };
+}
+
+function flattenRgExtents(rgExtents) {
+  if (!rgExtents) return null;
+  const flat = {};
+  for (const rgGroups of Object.values(rgExtents)) {
+    for (const [rgKey, bbox] of Object.entries(rgGroups)) {
+      flat[rgKey] = bbox;
+    }
+  }
+  return Object.keys(flat).length ? flat : null;
+}
+
+function addExtentLayer(cfg, extents) {
+  const geojson = extentsToGeoJSON(extents);
+  map.addSource(cfg.sourceId, { type: 'geojson', data: geojson, generateId: true });
+  map.addLayer({
+    id: cfg.fillLayer, type: 'fill', source: cfg.sourceId,
+    paint: {
+      'fill-color': ['case', ['boolean', ['feature-state', 'hover'], false],
+        cfg.fillHoverColor, cfg.fillColor],
+    },
+  });
+  map.addLayer({
+    id: cfg.lineLayer, type: 'line', source: cfg.sourceId,
+    paint: {
+      'line-color': ['case', ['boolean', ['feature-state', 'hover'], false],
+        cfg.lineHoverColor, cfg.lineColor],
+      'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2.5, 1.5],
+    },
+  });
+  addExtentHoverHandlers(cfg);
+}
+
+function removeExtentLayer(cfg) {
+  for (const layer of [cfg.lineLayer, cfg.fillLayer]) {
+    if (map.getLayer(layer)) map.removeLayer(layer);
+  }
+  if (map.getSource(cfg.sourceId)) map.removeSource(cfg.sourceId);
+}
+
+function addExtentHoverHandlers(cfg) {
+  const onMove = (e) => {
+    const features = map.queryRenderedFeatures(e.point, { layers: [cfg.fillLayer] });
+    const prevIds = extentHoveredFeatures.get(cfg.sourceId) || new Set();
+    const nextIds = new Set(features.map(f => f.id));
+    for (const id of prevIds) {
+      if (!nextIds.has(id)) map.setFeatureState({ source: cfg.sourceId, id }, { hover: false });
+    }
+    for (const id of nextIds) {
+      if (!prevIds.has(id)) map.setFeatureState({ source: cfg.sourceId, id }, { hover: true });
+    }
+    extentHoveredFeatures.set(cfg.sourceId, nextIds);
+    map.getCanvas().style.cursor = nextIds.size ? 'pointer' : '';
+  };
+  const onLeave = () => {
+    const prevIds = extentHoveredFeatures.get(cfg.sourceId);
+    if (prevIds) {
+      for (const id of prevIds) map.setFeatureState({ source: cfg.sourceId, id }, { hover: false });
+      extentHoveredFeatures.delete(cfg.sourceId);
+    }
+    map.getCanvas().style.cursor = '';
+  };
+  map.on('mousemove', cfg.fillLayer, onMove);
+  map.on('mouseleave', cfg.fillLayer, onLeave);
+  extentHoverHandlers.push({ layer: cfg.fillLayer, onMove, onLeave });
+}
+
+function removeAllExtents() {
+  for (const { layer, onMove, onLeave } of extentHoverHandlers) {
+    map.off('mousemove', layer, onMove);
+    map.off('mouseleave', layer, onLeave);
+  }
+  extentHoverHandlers.length = 0;
+  extentHoveredFeatures.clear();
+  for (const cfg of Object.values(EXTENT_CONFIGS)) {
+    removeExtentLayer(cfg);
+  }
+}
+
+async function showExtents() {
+  removeAllExtents();
+  extentsCheckbox.disabled = true;
+  extentsStatus.textContent = 'Loading…';
+
+  try {
+    if (!map.isStyleLoaded()) {
+      await new Promise(resolve => map.once('load', resolve));
+    }
+
+    if (!extentData) {
+      if (!duckdbPromise) duckdbPromise = initDuckDB(DUCKDB_DIST);
+      const duckdb = await duckdbPromise;
+      extentData = new ExtentData({
+        metadataProvider: new MetadataProvider(),
+        duckdb,
+      });
+    }
+
+    const ds = DATASETS[datasetSelect.value];
+    const { dataExtents, rgExtents } = await extentData.fetchExtents({
+      sourceUrl: ds.url,
+      partitioned: false,
+      bboxColumn: 'bbox',
+      onStatus: (msg) => { extentsStatus.textContent = msg; },
+    });
+
+    const flatRg = flattenRgExtents(rgExtents);
+    if (flatRg) addExtentLayer(EXTENT_CONFIGS.rg, flatRg);
+    if (dataExtents) addExtentLayer(EXTENT_CONFIGS.data, dataExtents);
+    extentsStatus.textContent = '';
+
+  } catch (error) {
+    console.error('Failed to show extents:', error);
+    extentsStatus.textContent = 'Error loading extents';
+  } finally {
+    extentsCheckbox.disabled = false;
+  }
+}
+
+extentsCheckbox.addEventListener('change', async () => {
+  if (extentsCheckbox.checked) {
+    await showExtents();
+  } else {
+    removeAllExtents();
+    extentsStatus.textContent = '';
+  }
+});
+
+datasetSelect.addEventListener('change', () => {
+  removeAllExtents();
+  extentsCheckbox.checked = false;
+  extentsStatus.textContent = '';
 });
