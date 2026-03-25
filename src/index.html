@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OSM Layercake Extract</title>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "apache-arrow": "https://esm.sh/apache-arrow@17.0.0",
+      "geoparquet-extractor": "https://esm.sh/geoparquet-extractor@0.1.4"
+    }
+  }
+  </script>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺️</text></svg>">
+</head>
+<body>
+  <div id="app">
+    <div id="map"></div>
+
+    <div id="panel" class="panel">
+      <button id="panel-toggle" class="panel-toggle" aria-label="Toggle panel">▶</button>
+
+      <div class="panel-header">
+        <h2>OSM Layercake Extract</h2>
+        <p class="subtitle">Extract OpenStreetMap data by bounding box</p>
+        <p class="attribution-badge">
+          Data provided by <a href="https://openstreetmap.us" target="_blank" rel="noopener">OpenStreetMap US</a>
+          via the <a href="https://openstreetmap.us/our-work/layercake/" target="_blank" rel="noopener">Layercake</a> project
+        </p>
+        <p id="data-timestamp" class="data-timestamp"></p>
+      </div>
+
+      <div class="panel-body">
+
+        <div class="warning-banner">
+          <strong>⚠ Large datasets.</strong> For large areas, progress tracking and cancellation
+          may not work reliably. The download itself should still complete.
+        </div>
+
+        <div class="form-group">
+          <label for="dataset-select">Dataset</label>
+          <select id="dataset-select">
+            <option value="buildings">Buildings</option>
+            <option value="highways">Highways</option>
+            <option value="boundaries">Boundaries</option>
+            <option value="parks">Parks</option>
+            <option value="settlements">Settlements</option>
+          </select>
+          <div id="dataset-info" class="dataset-info"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Current Bounding Box</label>
+          <div id="bbox-display" class="bbox-display"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="format-select">Output Format</label>
+          <select id="format-select">
+            <option value="geojson">GeoJSON (.geojson)</option>
+            <option value="geojsonseq">GeoJSONSeq (.geojsonl)</option>
+            <option value="geoparquet">GeoParquet v1.1 (.parquet)</option>
+            <option value="geoparquet2">GeoParquet v2.0 (.parquet)</option>
+            <option value="geopackage">GeoPackage (.gpkg)</option>
+            <option value="csv">CSV with WKT geometry (.csv)</option>
+            <option value="shapefile">Shapefile (.shp)</option>
+            <option value="kml">KML (.kml)</option>
+            <option value="dxf">DXF (.dxf)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="memory-slider">Memory Limit</label>
+          <input type="range" id="memory-slider" />
+          <span id="memory-value"></span>
+        </div>
+
+        <div class="license-notice">
+          📜 Data is licensed under the <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">Open Data Commons Open Database License (ODbL)</a>.
+          © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.
+        </div>
+
+        <div class="button-group">
+          <button id="download-btn" class="btn btn-primary">Download</button>
+          <button id="cancel-btn" class="btn btn-cancel" style="display: none">Cancel</button>
+        </div>
+
+        <div id="progress-container" style="display: none">
+          <div id="download-info" class="download-info"></div>
+          <div class="progress-bar-outer">
+            <div id="progress-bar" class="progress-bar-inner"></div>
+          </div>
+          <div id="status-text" class="status-text"></div>
+        </div>
+
+      </div>
+
+      <div class="panel-footer">
+        <div class="footer-osmus">Powered by <a href="https://openstreetmap.us/our-work/layercake/" target="_blank" rel="noopener">OSMUS Layercake</a></div>
+        <div class="footer-links">
+          <a href="https://openstreetmap.us/our-work/layercake/" target="_blank" rel="noopener">About Layercake</a>
+          <span>·</span>
+          <a href="https://github.com/osmus/layercake" target="_blank" rel="noopener">GitHub</a>
+          <span>·</span>
+          <a href="https://data.openstreetmap.us" target="_blank" rel="noopener">Data</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- India boundary corrector for Leaflet -->
+  <script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/leaflet-layer/dist/index.global.js"></script>
+  <!-- App (ES module) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
