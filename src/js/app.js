@@ -104,6 +104,7 @@ const panelToggle = document.getElementById('panel-toggle');
 const panel = document.getElementById('panel');
 const extentsCheckbox = document.getElementById('show-extents');
 const extentsStatus = document.getElementById('extents-status');
+const flattenStructsCheckbox = document.getElementById('flatten-structs');
 
 // --- URL state (layer stored in hash alongside MapLibre's map= param) ---
 
@@ -240,6 +241,7 @@ function setDownloading(active) {
   datasetSelect.disabled = active;
   formatSelect.disabled = active;
   memorySlider.disabled = active;
+  flattenStructsCheckbox.disabled = active;
 }
 
 downloadBtn.addEventListener('click', async () => {
@@ -256,12 +258,14 @@ downloadBtn.addEventListener('click', async () => {
   setDownloading(true);
   progressBar.style.width = '0%';
 
+  const flattenStructs = flattenStructsCheckbox.checked;
   const bboxStr = `${bbox[0].toFixed(4)}, ${bbox[1].toFixed(4)} → ${bbox[2].toFixed(4)}, ${bbox[3].toFixed(4)}`;
   downloadInfo.innerHTML =
     `<b>${ds.name}</b><br>` +
     `<span class="info-detail">Format: ${FORMAT_LABELS[format] || format}</span><br>` +
     `<span class="info-detail">Bbox: ${bboxStr}</span><br>` +
-    `<span class="info-detail">Memory: ${formatMemory(memMB)}</span>`;
+    `<span class="info-detail">Memory: ${formatMemory(memMB)}</span><br>` +
+    `<span class="info-detail">Flatten structs: ${flattenStructs ? 'Yes' : 'No'}</span>`;
 
   const onProgress = (pct) => { progressBar.style.width = `${pct}%`; };
   const onStatus = (msg) => {
@@ -287,7 +291,7 @@ downloadBtn.addEventListener('click', async () => {
       bbox,
       format,
       memoryLimitMB: memMB,
-      flattenStructs: true,
+      flattenStructs,
       onProgress,
       onStatus,
     });
