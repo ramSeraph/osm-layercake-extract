@@ -226,11 +226,24 @@ map.on('moveend', updateBbox);
 
 // --- Panel toggle ---
 
+const isMobile = () => window.matchMedia('(max-width: 600px)').matches;
+
+function updateToggleIcon() {
+  const collapsed = panel.classList.contains('collapsed');
+  panelToggle.textContent = isMobile()
+    ? (collapsed ? '▲' : '▼')
+    : (collapsed ? '◀' : '▶');
+}
+
 panelToggle.addEventListener('click', () => {
   panel.classList.toggle('collapsed');
-  panelToggle.textContent = panel.classList.contains('collapsed') ? '◀' : '▶';
+  updateToggleIcon();
   setTimeout(() => map.resize(), 300);
 });
+
+// Keep toggle icon correct when switching between mobile/desktop
+window.matchMedia('(max-width: 600px)').addEventListener('change', updateToggleIcon);
+updateToggleIcon();
 
 // --- Download ---
 
