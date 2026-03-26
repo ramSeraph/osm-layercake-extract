@@ -80,6 +80,7 @@ html, body {
 .panel-header {
   padding: 18px 20px 14px;
   border-bottom: 1px solid #313244;
+  text-align: center;
 }
 
 .panel-header h2 {
@@ -545,15 +546,15 @@ input[type="range"]:disabled {
   }
 
   .panel-toggle {
-    /* Horizontal drag-handle style pill at top of sheet */
+    /* Centered pill at top of sheet */
     position: absolute;
     left: 50%;
-    top: -22px;
+    top: -24px;
     transform: translateX(-50%);
-    width: 56px;
-    height: 44px;
-    border-radius: 10px 10px 0 0;
-    font-size: 14px;
+    width: 48px;
+    height: 24px;
+    border-radius: 8px 8px 0 0;
+    font-size: 12px;
   }
 
   .panel-header {
