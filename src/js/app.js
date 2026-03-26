@@ -74,16 +74,15 @@ function formatMemory(mb) {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
 }
 
-const FORMAT_LABELS = {
-  geojson: 'GeoJSON',
-  geojsonseq: 'GeoJSONSeq',
-  geoparquet: 'GeoParquet v1.1',
-  geoparquet2: 'GeoParquet v2.0',
-  geopackage: 'GeoPackage',
-  csv: 'CSV',
-  shapefile: 'Shapefile',
-  kml: 'KML',
-  dxf: 'DXF',
+const FORMAT_OPTIONS = {
+  geojson:     { label: 'GeoJSON',          ext: '.geojson' },
+  geojsonseq:  { label: 'GeoJSONSeq',       ext: '.geojsonl' },
+  geoparquet:  { label: 'GeoParquet v1.1',   ext: '.parquet' },
+  geoparquet2: { label: 'GeoParquet v2.0',   ext: '.parquet' },
+  geopackage:  { label: 'GeoPackage',        ext: '.gpkg' },
+  csv:         { label: 'CSV with WKT geometry', ext: '.csv' },
+  shapefile:   { label: 'Shapefile',         ext: '.shp' },
+  kml:         { label: 'KML',               ext: '.kml' },
 };
 
 // --- DOM references ---
@@ -105,6 +104,14 @@ const panel = document.getElementById('panel');
 const extentsCheckbox = document.getElementById('show-extents');
 const extentsStatus = document.getElementById('extents-status');
 const flattenStructsCheckbox = document.getElementById('flatten-structs');
+
+// Populate format dropdown from FORMAT_OPTIONS
+for (const [value, { label, ext }] of Object.entries(FORMAT_OPTIONS)) {
+  const opt = document.createElement('option');
+  opt.value = value;
+  opt.textContent = `${label} (${ext})`;
+  formatSelect.appendChild(opt);
+}
 
 // --- URL state (layer stored in hash alongside MapLibre's map= param) ---
 
@@ -275,7 +282,7 @@ downloadBtn.addEventListener('click', async () => {
   const bboxStr = `${bbox[0].toFixed(4)}, ${bbox[1].toFixed(4)} → ${bbox[2].toFixed(4)}, ${bbox[3].toFixed(4)}`;
   downloadInfo.innerHTML =
     `<b>${ds.name}</b><br>` +
-    `<span class="info-detail">Format: ${FORMAT_LABELS[format] || format}</span><br>` +
+    `<span class="info-detail">Format: ${FORMAT_OPTIONS[format]?.label || format}</span><br>` +
     `<span class="info-detail">Bbox: ${bboxStr}</span><br>` +
     `<span class="info-detail">Memory: ${formatMemory(memMB)}</span><br>` +
     `<span class="info-detail">Flatten structs: ${flattenStructs ? 'Yes' : 'No'}</span>`;

@@ -66,17 +66,7 @@
 
         <div class="form-group">
           <label for="format-select">Output Format</label>
-          <select id="format-select">
-            <option value="geojson">GeoJSON (.geojson)</option>
-            <option value="geojsonseq">GeoJSONSeq (.geojsonl)</option>
-            <option value="geoparquet">GeoParquet v1.1 (.parquet)</option>
-            <option value="geoparquet2">GeoParquet v2.0 (.parquet)</option>
-            <option value="geopackage">GeoPackage (.gpkg)</option>
-            <option value="csv">CSV with WKT geometry (.csv)</option>
-            <option value="shapefile">Shapefile (.shp)</option>
-            <option value="kml">KML (.kml)</option>
-            <option value="dxf">DXF (.dxf)</option>
-          </select>
+          <select id="format-select"></select>
         </div>
 
         <div class="option-checkbox-container">
@@ -86,7 +76,7 @@
           </label>
         </div>
 
-        <details class="form-group">
+        <details class="form-group" title="Maximum memory DuckDB is allowed to use for processing queries in the browser">
           <summary class="form-label">Memory Limit</summary>
           <input type="range" id="memory-slider" />
           <span id="memory-value"></span>
