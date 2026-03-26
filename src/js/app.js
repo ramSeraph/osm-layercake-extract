@@ -105,19 +105,26 @@ const panel = document.getElementById('panel');
 const extentsCheckbox = document.getElementById('show-extents');
 const extentsStatus = document.getElementById('extents-status');
 
-// --- URL state ---
+// --- URL state (layer stored in hash alongside MapLibre's map= param) ---
 
-const urlParams = new URLSearchParams(window.location.search);
-const initialLayer = urlParams.get('layer');
+function getHashParams() {
+  return new URLSearchParams(window.location.hash.substring(1));
+}
+
+function setHashParam(key, value) {
+  const params = getHashParams();
+  params.set(key, value);
+  const newHash = '#' + params.toString().replaceAll('%2F', '/');
+  window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${newHash}`);
+}
+
+const initialLayer = getHashParams().get('layer');
 if (initialLayer && DATASETS[initialLayer]) {
   datasetSelect.value = initialLayer;
 }
 
 function updateLayerParam() {
-  const params = new URLSearchParams(window.location.search);
-  params.set('layer', datasetSelect.value);
-  const newUrl = `${window.location.pathname}?${params}${window.location.hash}`;
-  window.history.replaceState(null, '', newUrl);
+  setHashParam('layer', datasetSelect.value);
 }
 updateLayerParam();
 
