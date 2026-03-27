@@ -3,7 +3,7 @@
 
 import {
   GeoParquetExtractor,
-  MetadataProvider,
+  SourceResolver,
   ExtentData,
   initDuckDB,
   formatSize,
@@ -301,7 +301,7 @@ downloadBtn.addEventListener('click', async () => {
       const duckdb = await duckdbPromise;
       extractor = new GeoParquetExtractor({
         duckdb,
-        metadataProvider: new MetadataProvider(),
+        sourceResolver: new SourceResolver(),
         gpkgWorkerUrl: GPKG_WORKER_URL,
       });
     }
@@ -422,6 +422,7 @@ let extentDuckdbPromise = null;
 let extentLoading = false;
 const extentHoverHandlers = [];
 const extentHoveredFeatures = new Map();
+const extentSourceResolver = new SourceResolver();
 
 function extentsToGeoJSON(extents) {
   const emptyFC = { type: 'FeatureCollection', features: [] };
@@ -489,7 +490,8 @@ function addExtentLayer(cfg, extents) {
         'text-size': 11,
         'text-anchor': 'top-left',
         'text-offset': [0.3, 0.3],
-        'text-allow-overlap': true,
+        'text-allow-overlap': false,
+        'text-ignore-placement': false,
         'text-font': ['Open Sans Semibold'],
       },
       paint: {
@@ -549,11 +551,8 @@ function removeAllExtents() {
 }
 
 function cancelExtentFetch() {
-  if (extentDuckdb) {
-    extentDuckdb.terminate();
-    extentDuckdb = null;
-  }
-  extentData = null;
+  extentData?.cancel?.();
+  extentDuckdb = null;
   extentDuckdbPromise = null;
   extentLoading = false;
   extentsCheckbox.disabled = false;
@@ -574,15 +573,14 @@ async function showExtents() {
     if (!extentDuckdbPromise) extentDuckdbPromise = initDuckDB(DUCKDB_DIST);
     const duckdb = await extentDuckdbPromise;
     extentDuckdb = duckdb;
-    extentData = new ExtentData({
-      metadataProvider: new MetadataProvider(),
-      duckdb,
-    });
+    if (!extentData) {
+      extentData = new ExtentData({ sourceResolver: extentSourceResolver });
+    }
+    extentData.setDuckDB(duckdb);
 
     const ds = DATASETS[datasetSelect.value];
     const { dataExtents, rgExtents } = await extentData.fetchExtents({
       sourceUrl: ds.url,
-      partitioned: false,
       bboxColumn: 'bbox',
       onStatus: (msg) => { extentsStatus.textContent = msg; },
     });
