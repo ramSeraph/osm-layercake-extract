@@ -12,7 +12,6 @@ import {
 
 import { registerCorrectionProtocol } from '@india-boundary-corrector/maplibre-protocol';
 
-const DUCKDB_DIST = 'https://cdn.jsdelivr.net/npm/duckdb-wasm-opfs-tempdir@1.33.0/dist';
 const METADATA_URL = 'https://data.openstreetmap.us/layercake/metadata.json';
 
 // Derive gpkg worker URL from the library's import map entry.
@@ -297,7 +296,7 @@ downloadBtn.addEventListener('click', async () => {
     // Lazy-init DuckDB and extractor on first download
     if (!extractor) {
       onStatus('Initializing DuckDB WASM...');
-      if (!duckdbPromise) duckdbPromise = initDuckDB(DUCKDB_DIST);
+      if (!duckdbPromise) duckdbPromise = initDuckDB();
       const duckdb = await duckdbPromise;
       extractor = new GeoParquetExtractor({
         duckdb,
@@ -570,7 +569,7 @@ async function showExtents() {
       await new Promise(resolve => map.once('load', resolve));
     }
 
-    if (!extentDuckdbPromise) extentDuckdbPromise = initDuckDB(DUCKDB_DIST);
+    if (!extentDuckdbPromise) extentDuckdbPromise = initDuckDB();
     const duckdb = await extentDuckdbPromise;
     extentDuckdb = duckdb;
     if (!extentData) {
